@@ -9,6 +9,7 @@ def triplecrop(frame, coord, directory, name=''):
     '''
     frame: numpy array shape (H,W)
     coord: (row,col) tuple ** note not x,y **
+        center point around which the crops are made
     directory: folder to put crops
     name: optional name for file
     '''
