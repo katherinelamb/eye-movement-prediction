@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F  # useful stateless functions
 import torch.optim as optim
-from torch.utils.data import ConcatDataSet
+from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader
-from torch.utils.data import TensorDataSet
+from torch.utils.data import TensorDataset
 from torch.utils.data import sampler
 
 import torchvision.datasets as dset
@@ -19,16 +19,17 @@ NUM_TRAIN = 1000 #??????
 # iterates through the Dataset and forms minibatches. We divide the CIFAR-10
 # training set into train and val sets by passing a Sampler object to the
 # DataLoader telling how it should sample from the underlying Dataset.
-data_train = TensorDataSet('(*tensors)')
-loader_train = DataLoader(data_train, batch_size=64, 
-                          sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))
 
-data_val = TensorDataSet('(*tensors)')
-loader_val = DataLoader(data_val, batch_size=64,                        # amount remaining
-                        sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, 1200)))
+data_train = None # = TensorDataset('(*tensors)')
+loader_train = None #DataLoader(data_train, batch_size=64, 
+                     #     sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))
 
-data_test = TensorDataSet('(*tensors)')
-loader_test = DataLoader(data_test, batch_size=64)
+data_val = None #TensorDataset('(*tensors)')
+loader_val = None # DataLoader(data_val, batch_size=64,                        # amount remaining
+                   #     sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, 1200)))
+
+data_test = None #TensorDataset('(*tensors)')
+loader_test = None #DataLoader(data_test, batch_size=64)
 
 
 USE_GPU = False
@@ -69,7 +70,7 @@ class SingleCropEncoder(nn.Module):
         
 
     def forward(self, x):
-        # X starts 64x64xTxC      (C = 3 ->RGB)
+        # X starts (N,C,64,64)      (C = 3 ->RGB)
         x = F.relu(self.conv1(x))
         x = self.max_pool(x)        # 32x32
         x = F.relu(self.conv2(x))
@@ -89,22 +90,22 @@ class ThreeLayerConvTransposeNet(nn.Module):
         ########################################################################
 
         self.convT1 = nn.ConvTranspose2d(in_channel, channel_1, kernel_size=4, stride=2, padding=1, bias=True)
-        nn.init.kaiming_normal_(self.conv1.weight)
-        nn.init.constant_(self.conv1.bias, 0)
+        nn.init.kaiming_normal_(self.convT1.weight)
+        nn.init.constant_(self.convT1.bias, 0)
         self.convT2 = nn.ConvTranspose2d(channel_1, channel_2, kernel_size=6, stride=4, padding=1, bias=True)
-        nn.init.kaiming_normal_(self.conv2.weight)
-        nn.init.constant_(self.conv2.bias, 0)
+        nn.init.kaiming_normal_(self.convT2.weight)
+        nn.init.constant_(self.convT2.bias, 0)
         
 
     def forward(self, x):
-        # X starts Nx8x8xC      (C = 48 = 3*16)
-        x = F.relu(self.convT1(x))   #Nx16x16x16
-        decoding = F.sigmoid(self.convT2(x))   # Nx64x64x1
+        # X starts (N,C,8,8)      (C = 48 = 3*16)
+        x = F.relu(self.convT1(x))   # (N,16,16,16)
+        decoding = F.sigmoid(self.convT2(x))   # (N,1,64,64)
         return decoding
 
 
 class SeccadeModel(nn.Module):
-    def __init__(self, in_channel, channel_1, channel_2, num_classes):
+    def __init__(self):
         super().__init__()
         # all SingleCropEncoders take 64x64 images
         # number after sc means original size of image before resizing
@@ -114,13 +115,13 @@ class SeccadeModel(nn.Module):
         self.convT_net = ThreeLayerConvTransposeNet()
         
     def forward(self, x128, x256, x512):
-        # encode images as (N,8,8,16) tensors
+        # encode images as (N,16,8,8) tensors
         x128 = self.sc128.forward(x128)
         x256 = self.sc128.forward(x256)
         x512 = self.sc128.forward(x512)
 
-        # get (N,8x8x48) encoding of all three views
-        encodings = torch.cat([x128, x256, x512], axis=3) #concatenate along channel axis
+        # get (N,48,8,8) encoding of all three views
+        encodings = torch.cat((x128, x256, x512), 1) #concatenate along channel axis
         
         # decode and get distribution over pixels of guess of seccade destination
         decoded_score = self.convT_net.forward(encodings)
@@ -191,17 +192,25 @@ def train(model, optimizer, epochs=1):
 ##### TRAINING #######
 
 learning_rate = 3e-3
-channel_1 = 32
-channel_2 = 16
 
 model = None
 optimizer = None
 ################################################################################
 # Instantiate model and a corresponding optimizer #
 ################################################################################
-in_channel = 3
-num_classes = 10
-model = SeccadeModel(in_channel, channel_1, channel_2, num_classes)
+model = SeccadeModel()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-train(model, optimizer)
+# train(model, optimizer)
+N,C,H,W = 4, 3, 64, 64
+in1 = torch.rand((N,C,H,W))
+in2 = torch.rand((N,C,H,W))
+in3 = torch.rand((N,C,H,W))
+fake_truth = torch.rand((N,C,H,W)) * 5
+output = model(in1, in2, in3)
+loss = torch.sum(fake_truth-output)
+print(output.shape)
+print (output)
+loss.backward()
+optimizer.step()
+
