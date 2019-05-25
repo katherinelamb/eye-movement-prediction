@@ -13,6 +13,11 @@ import sys
 import os
 import numpy as np
 
+
+def flatten(x):
+    N = x.shape[0] # read in N, C, H, W
+    return x.view(N, -1)  # "flatten" the C * H * W values into a single vector per image
+
 class SingleCropEncoder(nn.Module):
     '''
     input should be 
@@ -94,3 +99,22 @@ class SeccadeModel(nn.Module):
         # decode and get distribution over pixels of guess of seccade destination
         decoded_score = self.convT_net.forward(encodings)
         return decoded_score
+
+class PretrainModel(nn.Module):
+    '''pretrains on CIFAR10'''
+    def __init__(self):
+        super().__init__()
+        # all SingleCropEncoders take 64x64 images
+        # number after sc means original size of image before resizing
+        self.encoder = SingleCropEncoder()
+        self.fc = nn.Linear(16*8*8, 10, bias=True)
+        nn.init.kaiming_normal_(self.fc.weight)
+        nn.init.constant_(self.fc.bias, 0)
+        
+    def forward(self, x):
+        # encode images as (N,16,8,8) tensors
+        encoding = self.encoder(x) # equivalent of three-layer conv
+        encodings= flatten(encoding)
+        # decode and get distribution over pixels of guess of seccade destination
+        score = self.fc(encodings)
+        return score

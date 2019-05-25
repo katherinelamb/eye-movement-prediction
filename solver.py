@@ -86,7 +86,7 @@ def pretrain(model, optimizer, epochs=1):
     # preprocess the data by subtracting the mean RGB value and dividing by the
     # standard deviation of each RGB value; we've hardcoded the mean and std.
     transform = T.Compose([
-                    T.Resize((64,64))
+                    T.Resize((64,64)),
                     T.ToTensor(),
                     T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
