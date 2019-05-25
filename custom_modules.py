@@ -1,0 +1,96 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F  # useful stateless functions
+import torch.optim as optim
+from torch.utils.data import ConcatDataset
+from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset
+from torch.utils.data import sampler
+
+import torchvision.datasets as dset
+import torchvision.transforms as T
+import sys
+import os
+import numpy as np
+
+class SingleCropEncoder(nn.Module):
+    '''
+    input should be 
+    '''
+    def __init__(self, in_channel=3, channel_1=16, channel_2=16, channel_3=16):
+        super().__init__()
+        ########################################################################
+        # Set up the layers needed for a encoding each view                    #
+        ########################################################################
+
+        self.conv1 = nn.Conv2d(in_channel, channel_1, kernel_size=3, padding=1, bias=True)
+        nn.init.kaiming_normal_(self.conv1.weight)
+        nn.init.constant_(self.conv1.bias, 0)
+        self.conv2 = nn.Conv2d(channel_1, channel_2, kernel_size=3, padding=1, bias=True)
+        nn.init.kaiming_normal_(self.conv2.weight)
+        nn.init.constant_(self.conv2.bias, 0)
+        self.conv3 = nn.Conv2d(channel_2, channel_3, kernel_size=3, padding=1, bias=True)
+        nn.init.kaiming_normal_(self.conv3.weight)
+        nn.init.constant_(self.conv3.bias, 0)
+        self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        
+
+    def forward(self, x):
+        # X starts (N,C,64,64)      (C = 3 ->RGB)
+        x = F.relu(self.conv1(x))
+        x = self.max_pool(x)        # 32x32
+        x = F.relu(self.conv2(x))
+        x = self.max_pool(x)        # 16x16
+        x = F.relu(self.conv3(x))
+        encoding = self.max_pool(x) # 8x8
+        return encoding
+
+class ThreeLayerConvTransposeNet(nn.Module):
+    '''
+    input should be 
+    '''
+    def __init__(self, in_channel=48, channel_1=16, channel_2=1):
+        super().__init__()
+        ########################################################################
+        # Set up the layers needed for a encoding each view                    #
+        ########################################################################
+
+        self.convT1 = nn.ConvTranspose2d(in_channel, channel_1, kernel_size=4, stride=2, padding=1, bias=True)
+        nn.init.kaiming_normal_(self.convT1.weight)
+        nn.init.constant_(self.convT1.bias, 0)
+        self.convT2 = nn.ConvTranspose2d(channel_1, channel_2, kernel_size=6, stride=4, padding=1, bias=True)
+        nn.init.kaiming_normal_(self.convT2.weight)
+        nn.init.constant_(self.convT2.bias, 0)
+        
+
+    def forward(self, x):
+        # X starts (N,C,8,8)      (C = 48 = 3*16)
+        x = F.relu(self.convT1(x))   # (N,16,16,16)
+        x = self.convT2(x)
+        print('pre-decoding', x)
+        decoding = torch.sigmoid(x)   # (N,1,64,64)
+        return decoding
+
+
+class SeccadeModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # all SingleCropEncoders take 64x64 images
+        # number after sc means original size of image before resizing
+        self.sc128 = SingleCropEncoder()
+        self.sc256 = SingleCropEncoder()
+        self.sc512 =  SingleCropEncoder()
+        self.convT_net = ThreeLayerConvTransposeNet()
+        
+    def forward(self, x128, x256, x512):
+        # encode images as (N,16,8,8) tensors
+        x128 = self.sc128.forward(x128)
+        x256 = self.sc128.forward(x256)
+        x512 = self.sc128.forward(x512)
+
+        # get (N,48,8,8) encoding of all three views
+        encodings = torch.cat((x128, x256, x512), 1) #concatenate along channel axis
+        
+        # decode and get distribution over pixels of guess of seccade destination
+        decoded_score = self.convT_net.forward(encodings)
+        return decoded_score
