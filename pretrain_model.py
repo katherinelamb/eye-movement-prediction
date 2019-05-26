@@ -40,7 +40,10 @@ def main(argv):
         except OSError as exc: # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
-    torch.save(model.state_dict(), SAVE_PATH+model_name)
+    
+    for idx, submodel in enumerate(model.children()):
+        print (idx, submodel)
+        torch.save(submodel.state_dict(), SAVE_PATH+model_name+str(idx))
 
 
 

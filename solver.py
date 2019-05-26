@@ -47,9 +47,9 @@ print_every = 100
 print('using device:', device)
 
 
-def check_accuracy(loader, model):
+def check_accuracy(loader, name_of_set, model):
     if loader.dataset.train:
-        print('Checking accuracy on train/validation set')
+        print('Checking accuracy on', name_of_set, 'set')
     else:
         print('Checking accuracy on test set')   
     num_correct = 0
@@ -133,6 +133,6 @@ def pretrain(model, optimizer, epochs=1):
 
             if t % print_every == 0:
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
-#                 check_accuracy_part34(loader_train, model)
-                check_accuracy(loader_val, model)
+#                 check_accuracy_part34(loader_train, 'train', model)
+                check_accuracy(loader_val, 'val', model)
                 print()

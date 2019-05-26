@@ -22,23 +22,29 @@ class SingleCropEncoder(nn.Module):
     '''
     input should be 
     '''
-    def __init__(self, in_channel=3, channel_1=16, channel_2=16, channel_3=16):
+    def __init__(self, model_load_path=None, in_channel=3, channel_1=16, channel_2=16, channel_3=16):
         super().__init__()
         ########################################################################
         # Set up the layers needed for a encoding each view                    #
         ########################################################################
 
         self.conv1 = nn.Conv2d(in_channel, channel_1, kernel_size=3, padding=1, bias=True)
-        nn.init.kaiming_normal_(self.conv1.weight)
-        nn.init.constant_(self.conv1.bias, 0)
         self.conv2 = nn.Conv2d(channel_1, channel_2, kernel_size=3, padding=1, bias=True)
-        nn.init.kaiming_normal_(self.conv2.weight)
-        nn.init.constant_(self.conv2.bias, 0)
         self.conv3 = nn.Conv2d(channel_2, channel_3, kernel_size=3, padding=1, bias=True)
-        nn.init.kaiming_normal_(self.conv3.weight)
-        nn.init.constant_(self.conv3.bias, 0)
         self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
+        if model_load_path is None:
+            # initialize for fresh train
+            nn.init.kaiming_normal_(self.conv1.weight)
+            nn.init.constant_(self.conv1.bias, 0)
+            nn.init.kaiming_normal_(self.conv2.weight)
+            nn.init.constant_(self.conv2.bias, 0)
+            nn.init.kaiming_normal_(self.conv3.weight)
+            nn.init.constant_(self.conv3.bias, 0)
+        else:
+            self.conv1.load_state_dict(torch.load(model_load_path))
+            self.conv2.load_state_dict(torch.load(model_load_path))
+            self.conv3.load_state_dict(torch.load(model_load_path))
 
     def forward(self, x):
         # X starts (N,C,64,64)      (C = 3 ->RGB)
@@ -72,19 +78,18 @@ class ThreeLayerConvTransposeNet(nn.Module):
         # X starts (N,C,8,8)      (C = 48 = 3*16)
         x = F.relu(self.convT1(x))   # (N,16,16,16)
         x = self.convT2(x)
-        print('pre-decoding', x)
         decoding = torch.sigmoid(x)   # (N,1,64,64)
         return decoding
 
 
 class SeccadeModel(nn.Module):
-    def __init__(self):
+    def __init__(self, name=None):
         super().__init__()
         # all SingleCropEncoders take 64x64 images
         # number after sc means original size of image before resizing
-        self.sc128 = SingleCropEncoder()
-        self.sc256 = SingleCropEncoder()
-        self.sc512 =  SingleCropEncoder()
+        self.sc128 = SingleCropEncoder(name)
+        self.sc256 = SingleCropEncoder(name)
+        self.sc512 =  SingleCropEncoder(name)
         self.convT_net = ThreeLayerConvTransposeNet()
         
     def forward(self, x128, x256, x512):
