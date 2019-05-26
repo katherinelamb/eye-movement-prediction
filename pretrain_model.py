@@ -25,12 +25,13 @@ def main(argv):
     '''
     model_name = argv[1]
     learning_rate = 3e-3
+    # learning_rate = 4e-4
     ################################################################################
     # Instantiate model and a corresponding optimizer #
     ################################################################################
     model = cm.PretrainModel()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
-    solver.pretrain(model, optimizer)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=.9)
+    solver.pretrain(model, optimizer, epochs=3)
     solver.save_model(model, model_name)
 
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         assert (len(sys.argv) == 2)
     except:
         print('arguments:', sys.argv[1:])
-        print ('must include name of model as argume t')
+        print ('must include name of model as argument')
         exit()
 
     main(sys.argv)

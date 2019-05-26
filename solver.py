@@ -158,3 +158,36 @@ def save_model(model, model_name, save_as_single_model=False):
         for idx, submodel in enumerate(model.children()):
             print (idx, submodel)
             torch.save(submodel.state_dict(), SAVE_PATH+model_name+str(idx))
+
+def check_pretrain_model_acc_from_file(model_name, check_train, check_val):
+    model = cm.PretrainModel()
+    for idx, submodel in enumerate(model.children()):
+        dirname = SAVE_PATH+model_name+str(idx)
+        print (idx, submodel)
+        if os.path.exists(os.path.dirname(dirname)):
+            try:
+                submodel.load_state_dict(torch.load(dirname))
+            except OSError as exc:
+                print ('skipping idx:', idx)
+                continue
+    
+    NUM_TRAIN = 49000
+
+    transform = T.Compose([
+                    T.Resize((64,64)),
+                    T.ToTensor(),
+                    T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                ])
+    
+    if check_train:
+        cifar10_train = dset.CIFAR10('./pretrain_datasets/CIFAR', train=True, download=True,
+                                    transform=transform)
+        loader_train = DataLoader(cifar10_train, batch_size=64, 
+                                sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))
+        check_accuracy(loader_train, 'train', model)
+    if check_val:
+        cifar10_val = dset.CIFAR10('./pretrain_datasets/CIFAR', train=True, download=True,
+                                transform=transform)
+        loader_val = DataLoader(cifar10_val, batch_size=64, 
+                                sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, 50000)))
+        check_accuracy(loader_val, 'val', model)
