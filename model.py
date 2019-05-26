@@ -10,6 +10,7 @@ from torch.utils.data import sampler
 
 import torchvision.datasets as dset
 import torchvision.transforms as T
+import solver
 import sys
 import os
 import numpy as np
@@ -45,7 +46,7 @@ def main(argv):
     optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
     if not load_model:
-        # train(model, optimizer)
+        solver.train(model, optimizer)
         N,C,H,W = 4, 3, 64, 64
         in1 = torch.rand((N,C,H,W))
         in2 = torch.rand((N,C,H,W))
@@ -59,21 +60,14 @@ def main(argv):
         loss.backward()
         optimizer.step()
         print ('trained')
-
-        if not os.path.exists(os.path.dirname(SAVE_PATH+model_name)):
-            try:
-                os.makedirs(os.path.dirname(SAVE_PATH+model_name))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-        torch.save(model.state_dict(), SAVE_PATH+model_name)
+        solver.save_model(model, model_name)
 
     if load_model:
         print ('loading')
         single_crop_encoder_idx = '0'
         for idx, submodel in enumerate(model.children()):
             dirname = None
-            if idx < 3:
+            if idx < 3 and partial_load:
                 dirname = SAVE_PATH+model_name+single_crop_encoder_idx
             else:
                 dirname = SAVE_PATH+model_name+str(idx)
@@ -92,6 +86,8 @@ def main(argv):
         in3 = torch.rand((N,C,H,W))
         output = model(in1, in2, in3)
         print('output', output.shape)
+
+
 
 
 if __name__ == "__main__":

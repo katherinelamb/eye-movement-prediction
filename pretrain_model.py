@@ -23,8 +23,6 @@ def main(argv):
     All models will exist in the saved_models folder
     pass in flag '-t' if you want to train a new model
     '''
-    SAVE_PATH = './saved_models/'
-    load_model = True
     model_name = argv[1]
     learning_rate = 3e-3
     ################################################################################
@@ -33,17 +31,7 @@ def main(argv):
     model = cm.PretrainModel()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate)
     solver.pretrain(model, optimizer)
-
-    if not os.path.exists(os.path.dirname(SAVE_PATH+model_name)):
-        try:
-            os.makedirs(os.path.dirname(SAVE_PATH+model_name))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
-    
-    for idx, submodel in enumerate(model.children()):
-        print (idx, submodel)
-        torch.save(submodel.state_dict(), SAVE_PATH+model_name+str(idx))
+    solver.save_model(model, model_name)
 
 
 

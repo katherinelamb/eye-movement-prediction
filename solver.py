@@ -31,7 +31,6 @@ loader_val = None # DataLoader(data_val, batch_size=64,                        #
 data_test = None #TensorDataset('(*tensors)')
 loader_test = None #DataLoader(data_test, batch_size=64)
 
-
 USE_GPU = False
 
 dtype = torch.float32 # we will be using float throughout this tutorial
@@ -45,6 +44,7 @@ else:
 print_every = 100
 
 print('using device:', device)
+SAVE_PATH = './saved_models/'
 
 
 def check_accuracy(loader, name_of_set, model):
@@ -65,6 +65,13 @@ def check_accuracy(loader, name_of_set, model):
             num_samples += preds.size(0)
         acc = float(num_correct) / num_samples
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
+
+
+def train(model, optimizer, epochs=1):
+    '''
+    Train full Seccade model on our gathered data
+    '''
+    print('TODO: Train here')
 
 
 
@@ -136,3 +143,18 @@ def pretrain(model, optimizer, epochs=1):
 #                 check_accuracy_part34(loader_train, 'train', model)
                 check_accuracy(loader_val, 'val', model)
                 print()
+
+
+def save_model(model, model_name, save_as_single_model=False):
+    if not os.path.exists(os.path.dirname(SAVE_PATH+model_name)):
+        try:
+            os.makedirs(os.path.dirname(SAVE_PATH+model_name))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    if save_as_single_model:
+        torch.save(model.state_dict(), SAVE_PATH+model_name)
+    else:
+        for idx, submodel in enumerate(model.children()):
+            print (idx, submodel)
+            torch.save(submodel.state_dict(), SAVE_PATH+model_name+str(idx))
