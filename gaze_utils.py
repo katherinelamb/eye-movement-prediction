@@ -12,7 +12,7 @@ def get_data_lists(filename):
             counter += 1
             line = line.rstrip('\n')
             contents = line.split(' ')
-            if len(contents) == 4 and contents[0][0] != '#' and float(contents[3]) == 1:   
+            if len(contents) == 4 and contents[0][0] != '#' and float(contents[3]) == 1:
                     contents.pop() # don't need to keep certainty since it's binary
                     contents = [float(content) for content in contents]
                     gazes.append(contents)
@@ -25,12 +25,12 @@ def visualize_gaze_data(coords, option=4, interval=None):
         Tx3 ndarray,
         optional int option
         optional tuple interval (start, end) *assumes valid choices
-    
+
     option == 1: plots axis 1 against time axis 0
     option == 2: plots axis 2 against time axis 0
     option == 3: plots all viewed x,y coords
     option == 4: plots slope against time
-    option == 5: plots acceleration against time 
+    option == 5: plots acceleration against time
     interval restricts axis 0 to given start and end values
     '''
     start = 0
@@ -72,7 +72,7 @@ def load_gazes(filename, gaze_data_name):
     coords = get_data_lists(filename) # note coords[0] is timestamp
     coord_matrix = np.array(coords)
     return gaze_data_name, coord_matrix
-
+'''
 g = load_gazes('gaze/natural_movies_gaze/AAF_beach.coord', 'beach')
 visualize_gaze_data(g[1], option=5)
 # visualize_gaze_data(g[1], option=3)
@@ -83,3 +83,4 @@ visualize_gaze_data(g[1], option=5)
 
 g = load_gazes('gaze/natural_movies_gaze/AAF_bridge_1.coord', 'bridge')
 visualize_gaze_data(g[1], option=5)
+'''

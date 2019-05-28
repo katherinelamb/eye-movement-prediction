@@ -9,7 +9,7 @@ END_THRESH = .001
 
 def make_intervals(filename):
     name, coords = utils.load_gazes(filename, 'test')
-    # stored as tuples, (start location (tuple), end location (tuple), time difference between locs)
+    # stored as tuples, (start location (tuple), end location (tuple), time difference between locs, start time frame)
     intervals = []
     timestamps = coords.T[0]
     curr_start = timestamps[0]
@@ -27,8 +27,7 @@ def make_intervals(filename):
                 end_index = end_index-1
         end_loc = (coords[end_index][1], coords[end_index][2])
         time_diff = abs(timestamps[start_index] - timestamps[end_index])
-        intervals.append((start_loc, end_loc, time_diff))
-        print(start_loc, end_loc, time_diff)
+        intervals.append((start_loc, end_loc, time_diff, timestamps[start_index]))
 
         # find new start
         curr_start += int(INT_SIZE/2)
@@ -81,7 +80,7 @@ def plot_velocity(intervals):
     plt.title('Beach Video Eye Accelerations Over Time')
     plt.savefig('AAF_beach_1_vels_diff')
 
-def findSaccade(vels, intervals, vid_name):
+def find_saccades(vels, intervals, videopath):
     started_saccade = False
     data = []
     current_start_loc = None
@@ -91,17 +90,18 @@ def findSaccade(vels, intervals, vid_name):
             if diff >= START_THRESH:
                 started_saccade = True
                 current_start_loc = intervals[i][0]
+                timeframe = intervals[i][3]
         else:
             if diff <= END_THRESH:
                 started_saccade = False
                 label = intervals[i][1]
-                data.append([current_start_loc, label])
+                data.append((current_start_loc, label, timeframe, videopath))
                 current_start_loc = None
-    print(data)
+    return data
 
 
 if __name__ == "__main__":
     intervals = make_intervals('gaze/natural_movies_gaze/AAF_beach.coord')
     #plot_velocity(intervals)
     velocities = get_velocities(intervals)
-    findSaccade(velocities, intervals)
+    #find_saccades(velocities, intervals)
