@@ -45,6 +45,23 @@ def triplecrop(frame, coord, directory, name=''):
         #width += increment
         #height += increment
 
+    '''
+    images = map(Image.open, ['Test1.jpg', 'Test2.jpg', 'Test3.jpg'])
+    widths, heights = zip(*(i.size for i in images))
+
+    total_width = sum(widths)
+    max_height = max(heights)
+
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    x_offset = 0
+    for im in images:
+      new_im.paste(im, (x_offset,0))
+      x_offset += im.size[0]
+
+    new_im.save('test.jpg')
+    '''
+
 def load_video_data(path='beach.m2t'):
     videodata = skvideo.io.vread(path)
     print('data read in, shape:', videodata.shape)
@@ -70,12 +87,11 @@ def get_frame_num(milli, fpms):
 
 def get_training_images(time, x, y, videopath, directory, name):
     videodata = skvideo.io.vread(videopath)
-    print('data read in, shape:', videodata.shape)
-
+    #print('data read in, shape:', videodata.shape)
 
     fpms = get_frames_per_millisecond(videopath)
     frame_num = get_frame_num(time, fpms)
-    frame = videodata[frame_num]
+    frame = videodata[frame_num-1]
     #imageio.imsave('frame.jpg', first_frame)
                             #row, col
 
