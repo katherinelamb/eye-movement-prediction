@@ -27,7 +27,7 @@ class GazeDataset(Dataset):
                 on a sample.
         """
         self.coords_frame = pd.read_csv(csv_file)
-        print (self.coords_frame)
+        # print (self.coords_frame)
         self.root_dir = root_dir
         self.transform = transform
 
@@ -39,7 +39,13 @@ class GazeDataset(Dataset):
         img_name = os.path.join(self.root_dir, name)
                                 # self.coords_frame.iloc[idx, 0])
         image = io.imread(img_name)
-        coords = self.coords_frame.iloc[idx, 1:][1:-1].as_matrix()
+        # print ('frame', self.coords_frame)
+        # print ('iloc', self.coords_frame.iloc[idx, 1])
+        # coords = self.coords_frame.iloc[idx, 1:][1:-1].as_matrix()
+        coords = self.coords_frame.iloc[idx,1][1:-1]
+        # print ('shaved', coords)
+        coords = np.array(coords.split(', '))
+        # print ('matrix', coords)
         coords = coords.astype('float').reshape(-1, 2)
         sample = {'image': image, 'coords': coords}
 
@@ -52,31 +58,34 @@ class GazeDataset(Dataset):
 def show_coords(image, coords):
     """Show image with coords"""
     plt.imshow(image)
-    plt.scatter(coords[:, 0], coords[:, 1], s=10, marker='.', c='r')
+    plt.scatter(coords[:, 0], coords[:, 1], s=10, marker='o', c='r')
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 
-# Let’s instantiate this class and iterate through the data samples. 
-# We will print the sizes of first 4 samples and show their coords.
+def test_dataset():
+    # Let’s instantiate this class and iterate through the data samples. 
+    # We will print the sizes of first 4 samples and show their coords.
 
-gaze_dataset = GazeDataset(csv_file='./gaze_train/labels.csv',
-                                    root_dir='./gaze_train/training_data_singles/overfit_test/')
+    gaze_dataset = GazeDataset(csv_file='./gaze_train/training_data_singles/overfit_labels.csv',
+                                        root_dir='./gaze_train/training_data_singles/overfit_test/')
 
-fig = plt.figure()
+    fig = plt.figure()
 
-for i in range(len(gaze_dataset)):
-    sample = gaze_dataset[i]
+    for i in range(len(gaze_dataset)):
+        sample = gaze_dataset[i]
 
-    print(i, sample['image'].shape, sample['coords'].shape)
-    print(sample['coords'])
+        print(i, sample['image'].shape, sample['coords'].shape)
+        print(sample['coords'])
 
-    ax = plt.subplot(1, 4, i + 1)
-    plt.tight_layout()
-    ax.set_title('Sample #{}'.format(i))
-    ax.axis('off')
-    show_coords(**sample)
+        ax = plt.subplot(1, 4, i + 1)
+        plt.tight_layout()
+        ax.set_title('Sample #{}'.format(i))
+        ax.axis('off')
+        show_coords(**sample)
 
-    if i == 3:
-        plt.show()
-        input()
-        break
+        if i == 3:
+            plt.show()
+            input() #images go away for some reason if no pause...
+            break
+
+test_dataset()
