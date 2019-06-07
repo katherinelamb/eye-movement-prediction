@@ -67,10 +67,36 @@ def check_accuracy(loader, name_of_set, model):
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
+def load_gaze_dataset():
+    data_path = './gaze_train/'
+    print (data_path)
+    train_dataset = dset.ImageFolder(
+        root=data_path,
+        transform=T.ToTensor()
+    )
+    return train_dataset
+
+    # train_loader = torch.utils.data.DataLoader(
+    #     train_dataset,
+    #     batch_size=64,
+    #     num_workers=0#,
+    #     # shuffle=True
+    # )
+    # return train_loader
+
 def train(model, optimizer, epochs=1):
     '''
     Train full Seccade model on our gathered data
     '''
+    # hopefully this CIFAR stuff generalizes to our data, if not, may fix later
+    transform = T.Compose([
+                    T.Resize((64,64)),
+                    T.ToTensor(),
+                    T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                ])          
+    
+    for batch_idx, (data, target) in enumerate(load_dataset()):
+    
     print('TODO: Train here')
 
 
