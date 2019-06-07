@@ -100,8 +100,8 @@ def train(model, optimizer, epochs=1):
                 ])
 
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
-    for batch_idx, data, target in enumerate(load_dataset(data_path, transform)):
-    
+    for batch_idx, data, target in enumerate(load_gaze_dataset(data_path, transform)):
+        pass
     print('TODO: Train here')
 
 
