@@ -1,4 +1,5 @@
 import custom_modules as cm
+import pandas
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # useful stateless functions
@@ -67,12 +68,12 @@ def check_accuracy(loader, name_of_set, model):
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
 
-def load_gaze_dataset():
-    data_path = './gaze_train/'
+def load_gaze_dataset(data_path, transform):
+    
     print (data_path)
     train_dataset = dset.ImageFolder(
         root=data_path,
-        transform=T.ToTensor()
+        transform=transform
     )
     return train_dataset
 
@@ -88,14 +89,18 @@ def train(model, optimizer, epochs=1):
     '''
     Train full Seccade model on our gathered data
     '''
+    data_path = './gaze_train/training_data_singles/overfit_test/'
+    labels_path = './gaze_train/labels.csv'
+    labels = pandas.read_csv(labels_path)
     # hopefully this CIFAR stuff generalizes to our data, if not, may fix later
     transform = T.Compose([
                     T.Resize((64,64)),
                     T.ToTensor(),
                     T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                ])          
-    
-    for batch_idx, (data, target) in enumerate(load_dataset()):
+                ])
+
+    # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
+    for batch_idx, data, target in enumerate(load_dataset(data_path, transform)):
     
     print('TODO: Train here')
 
