@@ -24,7 +24,7 @@ if __name__ == "__main__":
         for point, label, timeframe, videopath in data:
             print('entry:', entry)
 
-            if entry >= 0 and entry <= 960: # good for picking up where you left off
+            if entry >= 960: # good for picking up where you left off
                 # saves a training image
                 # comment out line that calls triple crop in get_training_images to only make labels (see comment in function)
                 row, col, height = video_utils.get_training_images(timeframe/1000, point[0], point[1], videopath, 'training_data/', 'entry' + str(entry))
@@ -32,6 +32,8 @@ if __name__ == "__main__":
                 label_x, label_y = label
                 label_row = height - label_y - 1
                 label_col = label_x
+
+                # move label to be in the 512 x 512 box
                 if label_row > row + 512//2:
                     print('change row')
                     label_row = row + 512//2
@@ -46,18 +48,15 @@ if __name__ == "__main__":
                     label_col = col - 512//2
 
                 # scale down label
-                if label_row < row:
-                    label_row += (row - label_row)/8
-                else:
-                    label_row -= (label_row - row)/8
-                if label_col < col:
-                    label_col += (col - label_col)/8
-                else:
-                    label_col -= (label_col - col)/8
-                label = (round(label_row), round(label_col))
-                # labels written as (entry, label row, label col)
-                w.writerow([entry, label[0], label[1]])
+                top_left_big_crop = (row - 512//2, col - 512//2)
+                label_row_in_big_crop = label_row - top_left_big_crop[0]
+                label_col_in_big_crop = label_col - top_left_big_crop[1]
+                label_row_in_big_crop /= 8
+                label_col_in_big_crop /= 8
+                label = (round(label_row_in_big_crop), round(label_col_in_big_crop))
+                # labels written as (entry number, pathname to training entry, label row, label col)
+                w.writerow([entry, 'training_data_singles/entry' + str(entry) + '.jpg', label[0], label[1]])
             entry += 1
 
         video_num += 1
-        # ONCE DONE MAKING TRIPLE CROP IMAGES, CALL COMBINE_TRIPLE_CROPS_IN_DIR  
+        # ONCE DONE MAKING TRIPLE CROP IMAGES, CALL COMBINE_TRIPLE_CROPS_IN_DIR
