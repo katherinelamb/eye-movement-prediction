@@ -23,12 +23,10 @@ if __name__ == "__main__":
         w = csv.writer(open("labels.csv", "a"))
         for point, label, timeframe, videopath in data:
             print('entry:', entry)
-            print(videopath)
-            print(point[0])
-            print(point[1])
-            print(timeframe)
-            if entry >= 0: # good for picking up where you left off
+
+            if entry >= 0 and entry <= 960: # good for picking up where you left off
                 # saves a training image
+                # comment out line that calls triple crop in get_training_images to only make labels (see comment in function)
                 row, col, height = video_utils.get_training_images(timeframe/1000, point[0], point[1], videopath, 'training_data/', 'entry' + str(entry))
 
                 label_x, label_y = label
@@ -61,5 +59,5 @@ if __name__ == "__main__":
                 w.writerow([entry, label[0], label[1]])
             entry += 1
 
-
         video_num += 1
+        # ONCE DONE MAKING TRIPLE CROP IMAGES, CALL COMBINE_TRIPLE_CROPS_IN_DIR  

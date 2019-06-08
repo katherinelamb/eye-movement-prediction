@@ -105,6 +105,7 @@ def get_training_images(time, x, y, videopath, directory, name):
     H, W, D = frame.shape
     row = H - y - 1
     col = x
+    # comment out this line (call to triple crop) to just create labels
     triplecrop(frame, (row, col), directory, name)
     return row, col, H     # used to create labels
 
