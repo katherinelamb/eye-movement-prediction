@@ -2,6 +2,7 @@ import numpy as np
 import os
 import saccade_parser as sp
 import video_utils
+import csv
 
 if __name__ == "__main__":
     files = []
@@ -12,13 +13,51 @@ if __name__ == "__main__":
         files.append((os.path.join('gaze/natural_movies_gaze', filename), video_path))
 
     entry = 0
+    video_num = 0
     for filepath, videopath in files:
+        print('video num:', video_num)
         intervals = sp.make_intervals(filepath)
         velocities = sp.get_velocities(intervals)
         data = sp.find_saccades(velocities, intervals, videopath)
 
-        # FIGURE OUT WHAT TO DO ABOUT LABEL
+        w = csv.writer(open("labels.csv", "a"))
         for point, label, timeframe, videopath in data:
-            frame = video_utils.get_training_images(timeframe/1000, point[0], point[1], videopath, 'training_data/', 'entry' + str(entry))
+            print('entry:', entry)
+
+            if entry >= 0 and entry <= 960: # good for picking up where you left off
+                # saves a training image
+                # comment out line that calls triple crop in get_training_images to only make labels (see comment in function)
+                row, col, height = video_utils.get_training_images(timeframe/1000, point[0], point[1], videopath, 'training_data/', 'entry' + str(entry))
+
+                label_x, label_y = label
+                label_row = height - label_y - 1
+                label_col = label_x
+                if label_row > row + 512//2:
+                    print('change row')
+                    label_row = row + 512//2
+                elif label_row < row - 512//2:
+                    print('change row')
+                    label_row = row - 512//2
+                if label_col > col + 512//2:
+                    print('change col')
+                    label_col = col + 512//2
+                elif label_col < col - 512//2:
+                    print('change col')
+                    label_col = col - 512//2
+
+                # scale down label
+                if label_row < row:
+                    label_row += (row - label_row)/8
+                else:
+                    label_row -= (label_row - row)/8
+                if label_col < col:
+                    label_col += (col - label_col)/8
+                else:
+                    label_col -= (label_col - col)/8
+                label = (round(label_row), round(label_col))
+                # labels written as (entry, label row, label col)
+                w.writerow([entry, label[0], label[1]])
             entry += 1
-        break
+
+        video_num += 1
+        # ONCE DONE MAKING TRIPLE CROP IMAGES, CALL COMBINE_TRIPLE_CROPS_IN_DIR  

@@ -52,6 +52,23 @@ def triplecrop(frame, coord, directory, name=''):
         #width += increment
         #height += increment
 
+    '''
+    images = map(Image.open, ['Test1.jpg', 'Test2.jpg', 'Test3.jpg'])
+    widths, heights = zip(*(i.size for i in images))
+
+    total_width = sum(widths)
+    max_height = max(heights)
+
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    x_offset = 0
+    for im in images:
+      new_im.paste(im, (x_offset,0))
+      x_offset += im.size[0]
+
+    new_im.save('test.jpg')
+    '''
+
 def load_video_data(path='beach.m2t'):
     videodata = skvideo.io.vread(path)
     print('data read in, shape:', videodata.shape)
@@ -77,24 +94,25 @@ def get_frame_num(milli, fpms):
 
 def get_training_images(time, x, y, videopath, directory, name):
     videodata = skvideo.io.vread(videopath)
-    print('data read in, shape:', videodata.shape)
-
+    #print('data read in, shape:', videodata.shape)
 
     fpms = get_frames_per_millisecond(videopath)
     frame_num = get_frame_num(time, fpms)
-    frame = videodata[frame_num]
+    frame = videodata[frame_num-1]
     #imageio.imsave('frame.jpg', first_frame)
                             #row, col
 
     H, W, D = frame.shape
     row = H - y - 1
     col = x
+    # comment out this line (call to triple crop) to just create labels
     triplecrop(frame, (row, col), directory, name)
+    return row, col, H     # used to create labels
 
 
 def combine_triple_crops_in_dir(path):
     '''
-    used to combine three separate crop images made before network input 
+    used to combine three separate crop images made before network input
     format change
 
     input: location of crops -  directory ending in a '/'
@@ -103,7 +121,7 @@ def combine_triple_crops_in_dir(path):
     ex) entry1_0.jpg
     '''
     crop_paths = sorted([f for f in os.listdir(path) if isfile(join(path, f)) and f != '.DS_Store'])
-    
+
     # print (crop_paths)
     for i in range(len(crop_paths)//3):
         crop_group = 3 * i
@@ -123,7 +141,7 @@ def combine_triple_crops_in_dir(path):
 
         save_dir = path[:-1] + '_singles/'
         # can't use i because sorted doesn't keep crops in order, just together
-        entry_id = crop_paths[crop_group][5:-6] 
+        entry_id = crop_paths[crop_group][5:-6]
         trip_name = 'entry' + entry_id + '.jpg'
         create_dir(save_dir)
         imageio.imsave(save_dir + trip_name, triple)
