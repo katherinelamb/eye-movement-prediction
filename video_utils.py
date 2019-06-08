@@ -106,11 +106,12 @@ def get_training_images(time, x, y, videopath, directory, name):
     row = H - y - 1
     col = x
     triplecrop(frame, (row, col), directory, name)
+    return row, col, H     # used to create labels
 
 
 def combine_triple_crops_in_dir(path):
     '''
-    used to combine three separate crop images made before network input 
+    used to combine three separate crop images made before network input
     format change
 
     input: location of crops -  directory ending in a '/'
@@ -119,7 +120,7 @@ def combine_triple_crops_in_dir(path):
     ex) entry1_0.jpg
     '''
     crop_paths = sorted([f for f in os.listdir(path) if isfile(join(path, f)) and f != '.DS_Store'])
-    
+
     # print (crop_paths)
     for i in range(len(crop_paths)//3):
         crop_group = 3 * i
@@ -139,7 +140,7 @@ def combine_triple_crops_in_dir(path):
 
         save_dir = path[:-1] + '_singles/'
         # can't use i because sorted doesn't keep crops in order, just together
-        entry_id = crop_paths[crop_group][5:-6] 
+        entry_id = crop_paths[crop_group][5:-6]
         trip_name = 'entry' + entry_id + '.jpg'
         create_dir(save_dir)
         imageio.imsave(save_dir + trip_name, triple)
