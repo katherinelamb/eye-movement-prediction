@@ -5,6 +5,8 @@
 Link to data: https://www.inb.uni-luebeck.de/index.php?id=515
 
 Format of eye movement files: timestamp of gaze sample in microseconds since start of movie, x position, y position, confidence value
+
+18 natural movies, 54 people, each watched various numbers of movies ranging from 1 - 18, average was 15 movies viewed per person
  
 #### detecting saccades
 
