@@ -49,6 +49,33 @@ print('using device:', device)
 SAVE_PATH = './saved_models/'
 
 
+def check_gaze_accuracy(loader, name_of_set, model, batch_size):
+    if loader.dataset.train:
+        print('Checking accuracy on', name_of_set, 'set')
+    else:
+        print('Checking accuracy on test set')   
+    total_percentage_points = 0
+    num_samples = 0
+    model.eval()  # set model to evaluation mode
+    with torch.no_grad():
+        for sample_batched in loader:
+            x = sample_batched['image']
+            y = torch.zeros((batch_size, 64, 64))
+            coords = sample_batched['coords'].squeeze()
+            print ('coords', coords.shape, coords)
+            idx = torch.arange(0, batch_size, out=torch.LongTensor())
+            y[idx, coords[:0], coords[:1]] += 1
+            y = y.unsqueeze(1)
+            x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
+            y = y.to(device=device, dtype=dtype)
+            scores = model(x)
+            percentages_of_correct_pixels = scores * y
+            total_percentage_points += torch.sum(percentages_of_correct_pixels)
+            num_samples += batch_size
+        acc = float(total_percentage_points) / num_samples
+        print('percent correct: (%.2f)' % (100 * acc))
+
+
 def check_accuracy(loader, name_of_set, model):
     if loader.dataset.train:
         print('Checking accuracy on', name_of_set, 'set')
@@ -101,7 +128,7 @@ def train(model, optimizer, epochs=1):
                     gdata.ToTensor(),
                     gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
-    dataset = gdata.GazeDataset(labels_path, data_path, transform=transform)
+    dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform)
     train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)#, num_workers=2)
     dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
@@ -115,13 +142,18 @@ def train(model, optimizer, epochs=1):
             print ('coords', coords.shape, coords)
             idx = torch.arange(0, BATCH_SIZE, out=torch.LongTensor())
             y[idx, coords[:0], coords[:1]] += 1
+            y = y.unsqueeze(1)
             model.train()  # put model to training mode
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
-            y = y.to(device=device, dtype=torch.long)
-            scores = model(x).squeeze()
-            print ('scores', scores.shape)
-            print ('y', y.shape)
-            loss = F.cross_entropy(scores, y)
+            y = y.to(device=device, dtype=dtype)#dtype=torch.long)
+            scores = model(x)
+            sums = torch.sum(scores, dim=(2,3), keepdim=True)
+            percentages = scores / sums
+            # print ('scores', scores.shape)
+            # print ('y', y.shape)
+            # print ('scores', scores)
+            # print ('percentages', percentages)
+            loss = F.binary_cross_entropy(percentages, y)
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
@@ -138,7 +170,7 @@ def train(model, optimizer, epochs=1):
             if t % print_every == 0:
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
 #                 check_accuracy_part34(loader_train, 'train', model)
-                check_accuracy(loader_val, 'val', model)
+                check_gaze_accuracy(dev_loader, 'val', model, BATCH_SIZE)
                 print()
     
     

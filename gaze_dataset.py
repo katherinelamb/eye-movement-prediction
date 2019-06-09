@@ -19,7 +19,7 @@ plt.ion()   # interactive mode
 class GazeDataset(Dataset):
     '''Gaze coords dataset.'''
 
-    def __init__(self, csv_file, root_dir, transform=None):
+    def __init__(self, csv_file, root_dir, train=False, transform=None):
         '''
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -30,6 +30,7 @@ class GazeDataset(Dataset):
         self.coords_frame = pd.read_csv(csv_file)
         # print (self.coords_frame)
         self.root_dir = root_dir
+        self.train = train
         self.transform = transform
 
     def __len__(self):
