@@ -95,13 +95,8 @@ def train(model, optimizer, epochs=1):
     DATA_TOTAL = 10
     data_path = '../singles_10/'
     labels_path = '../labels_10.csv'
-    # hopefully this CIFAR stuff generalizes to our data, if not, may fix later
-    print ('types', type(0.4914))
-    print ('types', type(0.4822))
-    print ('types', type(0.4465))
-    print ('types', type((0.4914, 0.4822, 0.4465)))
+    # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
     transform = T.Compose([
-                    # T.Resize((64,64)),
                     gdata.ToTensor(),
                     gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
@@ -110,6 +105,13 @@ def train(model, optimizer, epochs=1):
     dev_loader = DataLoader(dataset, batch_size=2, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
     print ('train')
+    
+    
+    
+    
+    
+    
+    # uncomment to test result of loading data
     for batch_idx, sample_batched in enumerate(train_loader):
         print (batch_idx)
         print ('data.size', sample_batched['image'].size())
@@ -120,7 +122,8 @@ def train(model, optimizer, epochs=1):
         print ('data.size', sample_batched['image'].size())
         print ('coords size', sample_batched['coords'].size())
         print ('data.shape', sample_batched['image'].shape)
-    print ('done')
+        print ('data', sample_batched['image'])
+    # print ('done')
 
 
 

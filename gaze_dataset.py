@@ -105,7 +105,7 @@ class ToTensor(object):
         # numpy image: H x W x C
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
-        image = torch.from_numpy(image)
+        image = torch.from_numpy(image).float()
         # also need to make image with channels in range 0-255 to be in range 0.0-1.0
         image /= 255
         return {'image': image,
@@ -127,7 +127,8 @@ class Normalize(object):
         image, coords = sample['image'], sample['coords']
 
         for channel in range(3): # number of input channels (RGB)
-            image[:,:,channel] = image[:,:,channel] - self.mean[channel] / self.std[channel]
+            #torch tensor images are (C, H, W)
+            image[channel,:,:] = (image[channel,:,:] - self.mean[channel]) / self.std[channel]
         return {'image': image,
                 'coords': coords}
 
