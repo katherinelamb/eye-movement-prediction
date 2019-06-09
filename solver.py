@@ -1,5 +1,5 @@
 import custom_modules as cm
-import gaze_dataset as gdata
+from gaze_dataset import GazeDataset
 import pandas
 import torch
 import torch.nn as nn
@@ -90,20 +90,33 @@ def train(model, optimizer, epochs=1):
     '''
     Train full Seccade model on our gathered data
     '''
-    data_path = './gaze_train/training_data_singles/overfit_test/'
-    labels_path = './gaze_train/labels.csv'
-    labels = pandas.read_csv(labels_path)
+    CROP_SIZE = 64 #64x64 images
+    NUM_TRAIN = 8
+    DATA_TOTAL = 10
+    data_path = '../singles_10/'
+    labels_path = '../labels_10.csv'
     # hopefully this CIFAR stuff generalizes to our data, if not, may fix later
     transform = T.Compose([
-                    T.Resize((64,64)),
+                    # T.Resize((64,64)),
                     T.ToTensor(),
                     T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
-
+    dataset = GazeDataset(labels_path, data_path)#, transform=transform)
+    train_loader = DataLoader(dataset, batch_size=2, shuffle=True)#, num_workers=2)
+    dev_loader = DataLoader(dataset, batch_size=2, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
-    for batch_idx, data, target in enumerate(load_gaze_dataset(data_path, transform)):
-        pass
-    print('TODO: Train here')
+    print ('train')
+    for batch_idx, sample_batched in enumerate(train_loader):
+        print (batch_idx)
+        print ('data.size', sample_batched['image'].size())
+        print ('coords size', sample_batched['coords'].size())
+    print ('dev')
+    for batch_idx, sample_batched in enumerate(dev_loader):
+        print (batch_idx)
+        print ('data.size', sample_batched['image'].size())
+        print ('coords size', sample_batched['coords'].size())
+        print ('data.shape', sample_batched['image'].shape)
+    print ('done')
 
 
 

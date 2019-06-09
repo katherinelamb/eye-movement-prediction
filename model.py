@@ -15,8 +15,6 @@ import sys
 import os
 import numpy as np
 
-NUM_TRAIN = 1000 #??????
-
 def main(argv):
     '''
     Pass in a model name, either to load or to save to.
@@ -79,13 +77,13 @@ def main(argv):
                 except OSError as exc:
                     print ('skipping idx:', idx)
                     continue
-
-        N,C,H,W = 4, 3, 64, 64
-        in1 = torch.rand((N,C,H,W))
-        in2 = torch.rand((N,C,H,W))
-        in3 = torch.rand((N,C,H,W))
-        output = model(in1, in2, in3)
-        print('output', output.shape)
+        solver.train(model, optimizer)
+        # N,C,H,W = 4, 3, 64, 64
+        # in1 = torch.rand((N,C,H,W))
+        # in2 = torch.rand((N,C,H,W))
+        # in3 = torch.rand((N,C,H,W))
+        # output = model(in1, in2, in3)
+        # print('output', output.shape)
 
 
 
