@@ -113,7 +113,8 @@ def train(model, optimizer, epochs=1):
             y = torch.zeros((BATCH_SIZE, 64, 64))
             coords = sample_batched['coords'].squeeze()
             print ('coords', coords.shape, coords)
-            y[coords] += 1
+            idx = torch.arange(0, BATCH_SIZE, out=torch.LongTensor())
+            y[idx, coords[:0], coords[:1]] += 1
             model.train()  # put model to training mode
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=torch.long)
