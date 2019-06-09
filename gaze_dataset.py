@@ -15,17 +15,18 @@ warnings.filterwarnings("ignore")
 plt.ion()   # interactive mode
 
 ### basic structure of this class based on Pytorch Custom Dataset Tutorial
+### https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
 class GazeDataset(Dataset):
-    """Gaze coords dataset."""
+    '''Gaze coords dataset.'''
 
     def __init__(self, csv_file, root_dir, transform=None):
-        """
+        '''
         Args:
             csv_file (string): Path to the csv file with annotations.
             root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
-        """
+        '''
         self.coords_frame = pd.read_csv(csv_file)
         # print (self.coords_frame)
         self.root_dir = root_dir
@@ -59,7 +60,7 @@ class GazeDataset(Dataset):
 
 
 def show_coords(image, coords):
-    """Show image with coords"""
+    '''Show image with coords'''
     plt.imshow(image)
     plt.scatter(coords[:, 0], coords[:, 1], s=10, marker='o', c='r')
     plt.pause(0.001)  # pause a bit so that plots are updated
@@ -90,5 +91,45 @@ def test_dataset():
             plt.show()
             # input() #images go away for some reason if no pause...
             break
+
+class ToTensor(object):
+    '''
+    Convert ndarrays in sample to Tensors.
+    Code directly from Pytorch Tutorial
+    '''
+
+    def __call__(self, sample):
+        image, coords = sample['image'], sample['coords']
+
+        # swap color axis because
+        # numpy image: H x W x C
+        # torch image: C X H X W
+        image = image.transpose((2, 0, 1))
+        image = torch.from_numpy(image)
+        # also need to make image with channels in range 0-255 to be in range 0.0-1.0
+        image /= 255
+        return {'image': image,
+                'coords': torch.from_numpy(coords)}
+
+class Normalize(object):
+    '''
+    Normalize tensor in sample with mean
+    and standard deviation
+    (input[channel] - mean[channel]) / std[channel]
+    '''
+    def __init__(self, mean, std):
+        assert isinstance(mean, (tuple))
+        assert isinstance(std, (tuple))
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, sample):
+        image, coords = sample['image'], sample['coords']
+
+        for channel in range(3): # number of input channels (RGB)
+            image[:,:,channel] = image[:,:,channel] - self.mean[channel] / self.std[channel]
+        return {'image': image,
+                'coords': coords}
+
 
 # test_dataset()
