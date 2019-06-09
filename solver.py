@@ -93,6 +93,7 @@ def train(model, optimizer, epochs=1):
     CROP_SIZE = 64 #64x64 images
     NUM_TRAIN = 8
     DATA_TOTAL = 10
+    BATCH_SIZE = 2
     data_path = '../singles_10/'
     labels_path = '../labels_10.csv'
     # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
@@ -101,28 +102,60 @@ def train(model, optimizer, epochs=1):
                     gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
     dataset = gdata.GazeDataset(labels_path, data_path, transform=transform)
-    train_loader = DataLoader(dataset, batch_size=2, shuffle=True)#, num_workers=2)
-    dev_loader = DataLoader(dataset, batch_size=2, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
+    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)#, num_workers=2)
+    dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
     print ('train')
     
+    for e in range(epochs):
+        for t, sample_batched in enumerate(train_loader):
+            x = sample_batched['image']
+            y = torch.zeros((BATCH_SIZE, 64, 64))
+            coords = sample_batched['coords'].squeeze()
+            print ('coords', coords.shape, coords)
+            y[coords] += 1
+            model.train()  # put model to training mode
+            x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
+            y = y.to(device=device, dtype=torch.long)
+            scores = model(x).squeeze()
+            print ('scores', scores.shape)
+            print ('y', y.shape)
+            loss = F.cross_entropy(scores, y)
+
+            # Zero out all of the gradients for the variables which the optimizer
+            # will update.
+            optimizer.zero_grad()
+
+            # This is the backwards pass: compute the gradient of the loss with
+            # respect to each  parameter of the model.
+            loss.backward()
+
+            # Actually update the parameters of the model using the gradients
+            # computed by the backwards pass.
+            optimizer.step()
+
+            if t % print_every == 0:
+                print('Iteration %d, loss = %.4f' % (t, loss.item()))
+#                 check_accuracy_part34(loader_train, 'train', model)
+                check_accuracy(loader_val, 'val', model)
+                print()
     
     
     
     
     
     # uncomment to test result of loading data
-    for batch_idx, sample_batched in enumerate(train_loader):
-        print (batch_idx)
-        print ('data.size', sample_batched['image'].size())
-        print ('coords size', sample_batched['coords'].size())
-    print ('dev')
-    for batch_idx, sample_batched in enumerate(dev_loader):
-        print (batch_idx)
-        print ('data.size', sample_batched['image'].size())
-        print ('coords size', sample_batched['coords'].size())
-        print ('data.shape', sample_batched['image'].shape)
-        print ('data', sample_batched['image'])
+    # for batch_idx, sample_batched in enumerate(train_loader):
+    #     print (batch_idx)
+    #     print ('data.size', sample_batched['image'].size())
+    #     print ('coords size', sample_batched['coords'].size())
+    # print ('dev')
+    # for batch_idx, sample_batched in enumerate(dev_loader):
+    #     print (batch_idx)
+    #     print ('data.size', sample_batched['image'].size())
+    #     print ('coords size', sample_batched['coords'].size())
+    #     print ('data.shape', sample_batched['image'].shape)
+    #     print ('data', sample_batched['image'])
     # print ('done')
 
 

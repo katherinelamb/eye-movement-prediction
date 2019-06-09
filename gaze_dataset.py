@@ -43,13 +43,13 @@ class GazeDataset(Dataset):
         image = io.imread(img_name)
         # print ('frame', self.coords_frame)
         # print ('iloc', self.coords_frame.iloc[idx, 1]) #tuple
-        print ('iloc', self.coords_frame.iloc[idx, 2:])
+        # print ('iloc', self.coords_frame.iloc[idx, 2:])
         coords = self.coords_frame.iloc[idx, 2:].as_matrix()
         
         # coords = self.coords_frame.iloc[idx,1][1:-1] # worked with tuple
         # print ('shaved', coords)
         # coords = np.array(coords.split(', '))   #tuple
-        print ('matrix', coords)
+        # print ('matrix', coords)
         coords = coords.astype('int').reshape(-1, 2)  #tuple
         sample = {'image': image, 'coords': coords}
 
