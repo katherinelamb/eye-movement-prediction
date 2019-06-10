@@ -33,7 +33,8 @@ def main(argv):
         if argv[len(argv)-1] == '-tp':
             print ('attempting load')
             partial_load = True
-    learning_rate = 3e-3
+    # learning_rate = 3e-3
+    learning_rate = 3e3
 
     model = None
     optimizer = None
@@ -74,7 +75,7 @@ def main(argv):
             if os.path.exists(os.path.dirname(dirname)):
                 try:
                     submodel.load_state_dict(torch.load(dirname))
-                    # submodel.eval()
+                    submodel.eval()
                 except OSError as exc:
                     print ('skipping idx:', idx)
                     continue

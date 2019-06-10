@@ -72,7 +72,7 @@ def check_gaze_accuracy(loader, name_of_set, model):
             scores = model(x)
             sums = torch.sum(scores, dim=(2,3), keepdim=True)
             percentages = scores / sums
-            print ('percentages', percentages)
+            # print ('percentages', percentages)
             percentages_of_correct_pixels = percentages * y
             # print ('percentages', percentages_of_correct_pixels)
             total_percentage_points += torch.sum(percentages_of_correct_pixels)
@@ -140,7 +140,6 @@ def train(model, optimizer, epochs=1):
     test_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_DEV, DATA_TOTAL)))
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
     print ('train')
-    
     for e in range(epochs):
         for t, sample_batched in enumerate(train_loader):
             print ('iter', t)
@@ -155,9 +154,12 @@ def train(model, optimizer, epochs=1):
             model.train()  # put model to training mode
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)#dtype=torch.long)
-            scores = model(x)
-            sums = torch.sum(scores, dim=(2,3), keepdim=True)
-            percentages = scores / sums
+            percentages = model(x)
+            
+            # sums = torch.sum(scores, dim=(2,3), keepdim=True)
+            # percentages = scores / sums
+            # percentages = softmax(scores)
+            
             # print ('scores', scores.shape)
             # print ('y', y.shape)
             # print ('scores', scores)

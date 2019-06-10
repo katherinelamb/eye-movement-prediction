@@ -72,13 +72,13 @@ class ThreeLayerConvTransposeNet(nn.Module):
         self.convT2 = nn.ConvTranspose2d(channel_1, channel_2, kernel_size=6, stride=4, padding=1, bias=True)
         nn.init.kaiming_normal_(self.convT2.weight)
         nn.init.constant_(self.convT2.bias, 0)
-        
+        self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x):
         # X starts (N,C,8,8)      (C = 48 = 3*16)
         x = F.relu(self.convT1(x))   # (N,16,16,16)
         x = self.convT2(x)
-        decoding = torch.sigmoid(x)   # (N,1,64,64)
+        decoding = self.softmax(x)   # (N,1,64,64)
         return decoding
 
 
