@@ -49,6 +49,33 @@ print('using device:', device)
 SAVE_PATH = './saved_models/'
 
 
+def check_gaze_accuracy(loader, name_of_set, model, batch_size):
+    if loader.dataset.train:
+        print('Checking accuracy on', name_of_set, 'set')
+    else:
+        print('Checking accuracy on test set')   
+    total_percentage_points = 0
+    num_samples = 0
+    model.eval()  # set model to evaluation mode
+    with torch.no_grad():
+        for sample_batched in loader:
+            x = sample_batched['image']
+            y = torch.zeros((batch_size, 64, 64))
+            coords = sample_batched['coords'].squeeze()
+            print ('coords', coords.shape, coords)
+            idx = torch.arange(0, batch_size, out=torch.LongTensor())
+            y[idx, coords[:0], coords[:1]] += 1
+            y = y.unsqueeze(1)
+            x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
+            y = y.to(device=device, dtype=dtype)
+            scores = model(x)
+            percentages_of_correct_pixels = scores * y
+            total_percentage_points += torch.sum(percentages_of_correct_pixels)
+            num_samples += batch_size
+        acc = float(total_percentage_points) / num_samples
+        print('percent correct: (%.2f)' % (100 * acc))
+
+
 def check_accuracy(loader, name_of_set, model):
     if loader.dataset.train:
         print('Checking accuracy on', name_of_set, 'set')
@@ -90,20 +117,79 @@ def train(model, optimizer, epochs=1):
     '''
     Train full Seccade model on our gathered data
     '''
-    data_path = './gaze_train/training_data_singles/overfit_test/'
-    labels_path = './gaze_train/labels.csv'
-    labels = pandas.read_csv(labels_path)
-    # hopefully this CIFAR stuff generalizes to our data, if not, may fix later
+    CROP_SIZE = 64 #64x64 images
+    NUM_TRAIN = 8
+    DATA_TOTAL = 10
+    BATCH_SIZE = 2
+    data_path = '../singles_10/'
+    labels_path = '../labels_10.csv'
+    # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
     transform = T.Compose([
-                    T.Resize((64,64)),
-                    T.ToTensor(),
-                    T.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                    gdata.ToTensor(),
+                    gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
-
+    dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform)
+    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)#, num_workers=2)
+    dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
-    for batch_idx, data, target in enumerate(load_gaze_dataset(data_path, transform)):
-        pass
-    print('TODO: Train here')
+    print ('train')
+    
+    for e in range(epochs):
+        for t, sample_batched in enumerate(train_loader):
+            x = sample_batched['image']
+            y = torch.zeros((BATCH_SIZE, 64, 64))
+            coords = sample_batched['coords'].squeeze()
+            print ('coords', coords.shape, coords)
+            idx = torch.arange(0, BATCH_SIZE, out=torch.LongTensor())
+            y[idx, coords[:0], coords[:1]] += 1
+            y = y.unsqueeze(1)
+            model.train()  # put model to training mode
+            x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
+            y = y.to(device=device, dtype=dtype)#dtype=torch.long)
+            scores = model(x)
+            sums = torch.sum(scores, dim=(2,3), keepdim=True)
+            percentages = scores / sums
+            # print ('scores', scores.shape)
+            # print ('y', y.shape)
+            # print ('scores', scores)
+            # print ('percentages', percentages)
+            loss = F.binary_cross_entropy(percentages, y)
+
+            # Zero out all of the gradients for the variables which the optimizer
+            # will update.
+            optimizer.zero_grad()
+
+            # This is the backwards pass: compute the gradient of the loss with
+            # respect to each  parameter of the model.
+            loss.backward()
+
+            # Actually update the parameters of the model using the gradients
+            # computed by the backwards pass.
+            optimizer.step()
+
+            if t % print_every == 0:
+                print('Iteration %d, loss = %.4f' % (t, loss.item()))
+#                 check_accuracy_part34(loader_train, 'train', model)
+                check_gaze_accuracy(dev_loader, 'val', model, BATCH_SIZE)
+                print()
+    
+    
+    
+    
+    
+    # uncomment to test result of loading data
+    # for batch_idx, sample_batched in enumerate(train_loader):
+    #     print (batch_idx)
+    #     print ('data.size', sample_batched['image'].size())
+    #     print ('coords size', sample_batched['coords'].size())
+    # print ('dev')
+    # for batch_idx, sample_batched in enumerate(dev_loader):
+    #     print (batch_idx)
+    #     print ('data.size', sample_batched['image'].size())
+    #     print ('coords size', sample_batched['coords'].size())
+    #     print ('data.shape', sample_batched['image'].shape)
+    #     print ('data', sample_batched['image'])
+    # print ('done')
 
 
 

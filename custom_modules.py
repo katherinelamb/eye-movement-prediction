@@ -92,8 +92,13 @@ class SeccadeModel(nn.Module):
         self.sc512 =  SingleCropEncoder(name)
         self.convT_net = ThreeLayerConvTransposeNet()
         
-    def forward(self, x128, x256, x512):
-        # encode images as (N,16,8,8) tensors
+    def forward(self, x): # x is shape (batch, channel, H, W)
+        # forward encodes images as (N,16,8,8) tensors
+        #split crops
+        W = 64
+        x128 = x[:,:,:, :W]
+        x256 = x[:,:,:, W : 2*W]
+        x512 = x[:,:,:, 2*W : 3*W]
         x128 = self.sc128.forward(x128)
         x256 = self.sc128.forward(x256)
         x512 = self.sc128.forward(x512)
