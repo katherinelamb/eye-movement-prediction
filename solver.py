@@ -70,7 +70,11 @@ def check_gaze_accuracy(loader, name_of_set, model):
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)
             scores = model(x)
-            percentages_of_correct_pixels = scores * y
+            sums = torch.sum(scores, dim=(2,3), keepdim=True)
+            percentages = scores / sums
+            print ('percentages', percentages)
+            percentages_of_correct_pixels = percentages * y
+            # print ('percentages', percentages_of_correct_pixels)
             total_percentage_points += torch.sum(percentages_of_correct_pixels)
             num_samples += batch_size
         acc = float(total_percentage_points) / num_samples
@@ -144,7 +148,7 @@ def train(model, optimizer, epochs=1):
             batch_size = x.shape[0]
             y = torch.zeros((batch_size, 64, 64))
             coords = sample_batched['coords'].squeeze()
-            print ('coords', coords.shape, coords)
+            # print ('coords', coords.shape, coords)
             idx = torch.arange(0, batch_size, out=torch.LongTensor())
             y[idx, coords[:,0], coords[:,1]] += 1
             y = y.unsqueeze(1)

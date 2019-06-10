@@ -117,6 +117,7 @@ class Normalize(object):
     Normalize tensor in sample with mean
     and standard deviation
     (input[channel] - mean[channel]) / std[channel]
+    also makes sure coords are in appropriate 0-63 range
     '''
     def __init__(self, mean, std):
         assert isinstance(mean, (tuple))
@@ -130,6 +131,10 @@ class Normalize(object):
         for channel in range(3): # number of input channels (RGB)
             #torch tensor images are (C, H, W)
             image[channel,:,:] = (image[channel,:,:] - self.mean[channel]) / self.std[channel]
+        coords[0][0] = max(0, coords[0][0])
+        coords[0][0] = min(63, coords[0][0])
+        coords[0][1] = max(0, coords[0][1])
+        coords[0][1] = min(63, coords[0][1])
         return {'image': image,
                 'coords': coords}
 
