@@ -49,7 +49,7 @@ print('using device:', device)
 SAVE_PATH = './saved_models/'
 
 
-def check_gaze_accuracy(loader, name_of_set, model, batch_size):
+def check_gaze_accuracy(loader, name_of_set, model):
     if loader.dataset.train:
         print('Checking accuracy on', name_of_set, 'set')
     else:
@@ -60,11 +60,12 @@ def check_gaze_accuracy(loader, name_of_set, model, batch_size):
     with torch.no_grad():
         for sample_batched in loader:
             x = sample_batched['image']
+            batch_size = x.shape[0]
             y = torch.zeros((batch_size, 64, 64))
             coords = sample_batched['coords'].squeeze()
-            print ('coords', coords.shape, coords)
+            # print ('coords', coords.shape, coords)
             idx = torch.arange(0, batch_size, out=torch.LongTensor())
-            y[idx, coords[:0], coords[:1]] += 1
+            y[idx, coords[:,0], coords[:,1]] += 1
             y = y.unsqueeze(1)
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)
@@ -118,30 +119,34 @@ def train(model, optimizer, epochs=1):
     Train full Seccade model on our gathered data
     '''
     CROP_SIZE = 64 #64x64 images
-    NUM_TRAIN = 8
-    DATA_TOTAL = 10
-    BATCH_SIZE = 2
-    data_path = '../singles_10/'
-    labels_path = '../labels_10.csv'
+    NUM_TRAIN = 8000
+    NUM_DEV = 9000
+    DATA_TOTAL = 10000
+    BATCH_SIZE = 64
+    data_path = './'
+    labels_path = './labels.csv'
     # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
     transform = T.Compose([
                     gdata.ToTensor(),
                     gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 ])
     dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform)
-    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)#, num_workers=2)
-    dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, DATA_TOTAL)))#, num_workers=2)
+    train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))#, num_workers=2)
+    dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, NUM_DEV)))#, num_workers=2)
+    test_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_DEV, DATA_TOTAL)))
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
     print ('train')
     
     for e in range(epochs):
         for t, sample_batched in enumerate(train_loader):
+            print ('iter', t)
             x = sample_batched['image']
-            y = torch.zeros((BATCH_SIZE, 64, 64))
+            batch_size = x.shape[0]
+            y = torch.zeros((batch_size, 64, 64))
             coords = sample_batched['coords'].squeeze()
             print ('coords', coords.shape, coords)
-            idx = torch.arange(0, BATCH_SIZE, out=torch.LongTensor())
-            y[idx, coords[:0], coords[:1]] += 1
+            idx = torch.arange(0, batch_size, out=torch.LongTensor())
+            y[idx, coords[:,0], coords[:,1]] += 1
             y = y.unsqueeze(1)
             model.train()  # put model to training mode
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
@@ -170,9 +175,9 @@ def train(model, optimizer, epochs=1):
             if t % print_every == 0:
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
 #                 check_accuracy_part34(loader_train, 'train', model)
-                check_gaze_accuracy(dev_loader, 'val', model, BATCH_SIZE)
+                check_gaze_accuracy(dev_loader, 'val', model)
                 print()
-    
+    check_gaze_accuracy(dev_loader, 'val', model)
     
     
     

@@ -74,6 +74,7 @@ def main(argv):
             if os.path.exists(os.path.dirname(dirname)):
                 try:
                     submodel.load_state_dict(torch.load(dirname))
+                    # submodel.eval()
                 except OSError as exc:
                     print ('skipping idx:', idx)
                     continue
