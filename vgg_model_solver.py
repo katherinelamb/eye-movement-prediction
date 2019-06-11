@@ -16,6 +16,8 @@ import os
 import numpy as np
 import vgg_model as vgg
 import solver
+import threading
+import logging
 
 USE_GPU = False
 
@@ -91,6 +93,11 @@ def check_gaze_accuracy(loader, name_of_set, vgg_model, model, mini):
         guess_acc = float(total_correct) / num_samples
         print('percentage points correct: (%.2f)' % (100 * perc_acc))
         print('percent guesses correct: (%.2f)' % (100 * guess_acc))
+
+def crop_through_vgg(vgg_model, crop, crop_num):
+    x = vgg_model(crop)
+    print('done with crop', crop_num)
+    return x
 
 
 def train(model, optimizer, mini=True, epochs=1):

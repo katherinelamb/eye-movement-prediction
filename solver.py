@@ -71,18 +71,12 @@ def check_gaze_accuracy(loader, name_of_set, model, mini):
             y = y.unsqueeze(1)
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)
-            # scores = model(x)
-            # sums = torch.sum(scores, dim=(2,3), keepdim=True)
-            # percentages = scores / sums
             percentages = model(x)
-            # maxes = torch.max(percentages, 0)
-            # guesses = torch.where(percentages == maxes, 1, 0)
-           # guesses = torch.argmax(percentages, dim=0) wrong
             reshaped = percentages.view(batch_size, -1).argmax(1).view(-1, 1)
             guesses = torch.cat((reshaped // W, reshaped % W), dim=1)
             guesses.unsqueeze(1)
             print ('guesses', guesses.shape)
-            print ('y', y.shape)
+            print ('y', y.shape, y)
             # print ('percentages', percentages)
             percentages_of_correct_pixels = percentages * y
             # print ('percentages', percentages_of_correct_pixels)
@@ -351,3 +345,33 @@ def check_pretrain_model_acc_from_file(model_name, check_train, check_val):
         loader_val = DataLoader(cifar10_val, batch_size=64, 
                                 sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, 50000)))
         check_accuracy(loader_val, 'val', model)
+
+def check_model_acc_from_file(model_name, mini=True):
+    model = cm.SeccadeModel()
+    for idx, submodel in enumerate(model.children()):
+        dirname = SAVE_PATH+model_name+str(idx)
+        print (idx, submodel)
+        if os.path.exists(os.path.dirname(dirname)):
+            try:
+                submodel.load_state_dict(torch.load(dirname))
+            except OSError as exc:
+                print ('skipping idx:', idx)
+                continue
+    
+    NUM_TRAIN = 8000
+    NUM_DEV = 9000
+    DATA_TOTAL = 10000
+    BATCH_SIZE = 64
+    data_path = './'
+    labels_path = './labels.csv'
+    printed_y_once = False
+    # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
+    transform = T.Compose([
+                    gdata.ToTensor(),
+                    gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010), mini),
+                ])
+    dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform, mini=mini)    
+    dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, NUM_DEV)))#, num_workers=2)
+    test_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_DEV, DATA_TOTAL)))
+    # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
+    check_gaze_accuracy(dev_loader, 'dev', model, mini)
