@@ -77,12 +77,22 @@ def check_gaze_accuracy(loader, name_of_set, model, mini):
             percentages = model(x)
             # maxes = torch.max(percentages, 0)
             # guesses = torch.where(percentages == maxes, 1, 0)
-            guesses = torch.argmax(percentages, dim=0)
+           # guesses = torch.argmax(percentages, dim=0) wrong
+            reshaped = percentages.view(batch_size, -1).argmax(1).view(-1, 1)
+            guesses = torch.cat((reshaped // W, reshaped % W), dim=1)
+            guesses.unsqueeze(1)
+            print ('guesses', guesses.shape)
+            print ('y', y.shape)
             # print ('percentages', percentages)
             percentages_of_correct_pixels = percentages * y
             # print ('percentages', percentages_of_correct_pixels)
             # total_correct += torch.sum(guesses * y)
-            total_correct += torch.sum(y[guesses])
+            # print ('guesses[:,0]', guesses[:,0])
+            # print ('guesses[:,1]', guesses[:,1])
+            # print ('indexed into y', y[idx, 0, guesses[:,0], guesses[:,1]])
+            total_correct += torch.sum(y[idx, 0, guesses[:,0], guesses[:,1]])
+            # print ('correct so far', total_correct)
+            # print ('out of:', torch.sum(y))
             total_percentage_points += torch.sum(percentages_of_correct_pixels)
             num_samples += batch_size
         perc_acc = float(total_percentage_points) / num_samples
@@ -169,7 +179,7 @@ def train(model, optimizer, mini=True, epochs=1):
             if not printed_y_once:
                 print ('sum of y', torch.sum(y, dim=0))
             y = y.unsqueeze(1)
-            model.train()  # put model to training mode
+            # model.train()  # put model to training mode ###can't do with pretrained cuz puts all parts back
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)#dtype=torch.long)
             percentages = model(x)

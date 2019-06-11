@@ -27,6 +27,7 @@ def main(argv):
     train_new_model = False
     load_model = True
     partial_load = False
+    load_and_train = False
     model_name = argv[1]
     if len(argv) > 2:
         if argv[len(argv)-1] == '-t':
@@ -105,7 +106,7 @@ def main(argv):
                     continue
         solver.train(model, optimizer)
 
-    solver.save_model(model, model_name + '_post_train')
+    # solver.save_model(model, model_name + '_post_train')
 
 
 
