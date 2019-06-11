@@ -118,6 +118,51 @@ class TwoLayerConvNet(nn.Module):
         # exit()
         return decoding
 
+class PostVggDecoder(nn.Module):
+    '''
+    take three crop encodings and shrink to single 4x4 area to guess eye location
+    '''
+    def __init__(self, in_channel=512*3, channel_1=512, channel_2=128, channel_3=32, channel_4=1):
+        super().__init__()
+        ########################################################################
+        # Set up the layers needed for a encoding each view                    #
+        ########################################################################
+
+        self.conv1 = nn.Conv2d(in_channel, channel_1, kernel_size=3, padding=1, bias=True)
+        self.conv1_1 = nn.Conv2d(channel_1, channel_2, kernel_size=3, padding=1, bias=True)
+        self.conv1_2 = nn.Conv2d(channel_2, channel_3, kernel_size=3, padding=1, bias=True)
+        self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(channel_3, channel_4, kernel_size=3, padding=1, bias=True)
+        self.softmax = nn.Softmax(dim=2)
+        # initialize
+        nn.init.kaiming_normal_(self.conv1.weight)
+        nn.init.constant_(self.conv1.bias, 0)
+        nn.init.kaiming_normal_(self.conv1_1.weight)
+        nn.init.constant_(self.conv1_1.bias, 0)
+        nn.init.kaiming_normal_(self.conv1_2.weight)
+        nn.init.constant_(self.conv1_2.bias, 0)
+        nn.init.kaiming_normal_(self.conv2.weight)
+        nn.init.constant_(self.conv2.bias, 0)
+
+    def forward(self, x128, x256, x512):
+        # each x starts (N,C,8,8)      (C = 512)
+        encodings = torch.cat((x128, x256, x512), 1) #concatenate along channel axis
+        N = encodings.shape[0]
+        x = F.relu(self.conv1(encodings))
+        x = F.relu(self.conv1_1(x))
+        x = F.relu(self.conv1_2(x))
+        x = self.max_pool(x)        # 4x4
+        x = self.conv2(x)
+        print ('decoding pre-softmax', x)
+        # decoding = self.softmax(x) # 4x4 percentages
+        decoding = self.softmax(x.view(*x.size()[:2],-1)).view_as(x)
+        assert (decoding.shape == (N, 1, 4,4))
+        print ('decoding', decoding)
+        # print ('sum', torch.sum(decoding, dim=(2,3)))
+        print ('sums of pixels over all examples\n', torch.sum(decoding, dim=(0,1)))
+        # exit()
+        return decoding
+
 class SeccadeModel(nn.Module):
     def __init__(self, name=None, version=2):
         super().__init__()

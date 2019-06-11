@@ -94,6 +94,16 @@ def test_dataset():
             # input() #images go away for some reason if no pause...
             break
 
+class VggResize(object):
+    '''
+    resize image to be big enough for vgg
+    '''
+    def __call__(self, sample):
+        image, coords = sample['image'], sample['coords']
+        image = transform.resize(image, (256,256*3))
+        return {'image': image,
+                'coords': coords}
+
 class ToTensor(object):
     '''
     Convert ndarrays in sample to Tensors.

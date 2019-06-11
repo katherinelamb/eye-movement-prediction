@@ -96,8 +96,8 @@ def main():
     # vgg networks are trained on images with each channel normalized by mean [0.485, 0.456, 0.406] and
     # standard deviation [0.229, 0.224, 0.225]. Normalize the image using these values before sending it
     # to the network
-    cnn_normalization_mean = torch.from_numpy(np.array([0.485, 0.456, 0.406])).to(device)
-    cnn_normalization_std = torch.from_numpy(np.array([0.229, 0.224, 0.225])).to(device)
+    cnn_normalization_mean = (0.485, 0.456, 0.406)
+    cnn_normalization_std = (0.229, 0.224, 0.225)
     model = get_truncated_vgg(cnn, device)
     return model, cnn_normalization_mean, cnn_normalization_std
     
