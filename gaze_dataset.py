@@ -19,7 +19,7 @@ plt.ion()   # interactive mode
 class GazeDataset(Dataset):
     '''Gaze coords dataset.'''
 
-    def __init__(self, csv_file, root_dir, train=False, transform=None):
+    def __init__(self, csv_file, root_dir, train=False, mini=True, transform=None):
         '''
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -32,6 +32,7 @@ class GazeDataset(Dataset):
         self.root_dir = root_dir
         self.train = train
         self.transform = transform
+        self.mini = mini
 
     def __len__(self):
         return len(self.coords_frame)
@@ -119,11 +120,12 @@ class Normalize(object):
     (input[channel] - mean[channel]) / std[channel]
     also makes sure coords are in appropriate 0-63 range
     '''
-    def __init__(self, mean, std):
+    def __init__(self, mean, std, mini):
         assert isinstance(mean, (tuple))
         assert isinstance(std, (tuple))
         self.mean = mean
         self.std = std
+        self.mini = mini
 
     def __call__(self, sample):
         image, coords = sample['image'], sample['coords']
@@ -131,10 +133,17 @@ class Normalize(object):
         for channel in range(3): # number of input channels (RGB)
             #torch tensor images are (C, H, W)
             image[channel,:,:] = (image[channel,:,:] - self.mean[channel]) / self.std[channel]
-        coords[0][0] = max(0, coords[0][0])
-        coords[0][0] = min(63, coords[0][0])
-        coords[0][1] = max(0, coords[0][1])
-        coords[0][1] = min(63, coords[0][1])
+        if not self.mini:
+            coords[0][0] = max(0, coords[0][0])
+            coords[0][0] = min(63, coords[0][0])
+            coords[0][1] = max(0, coords[0][1])
+            coords[0][1] = min(63, coords[0][1])
+        else:
+            coords /= 16 # scale down input to 4x4
+            coords[0][0] = max(0, coords[0][0])
+            coords[0][0] = min(3, coords[0][0])
+            coords[0][1] = max(0, coords[0][1])
+            coords[0][1] = min(3, coords[0][1])
         return {'image': image,
                 'coords': coords}
 

@@ -49,7 +49,7 @@ print('using device:', device)
 SAVE_PATH = './saved_models/'
 
 
-def check_gaze_accuracy(loader, name_of_set, model):
+def check_gaze_accuracy(loader, name_of_set, model, mini):
     if loader.dataset.train:
         print('Checking accuracy on', name_of_set, 'set')
     else:
@@ -57,11 +57,12 @@ def check_gaze_accuracy(loader, name_of_set, model):
     total_percentage_points = 0
     num_samples = 0
     model.eval()  # set model to evaluation mode
+    W = 4 if mini else 64
     with torch.no_grad():
         for sample_batched in loader:
             x = sample_batched['image']
             batch_size = x.shape[0]
-            y = torch.zeros((batch_size, 64, 64))
+            y = torch.zeros((batch_size, W, W))
             coords = sample_batched['coords'].squeeze()
             # print ('coords', coords.shape, coords)
             idx = torch.arange(0, batch_size, out=torch.LongTensor())
@@ -69,9 +70,10 @@ def check_gaze_accuracy(loader, name_of_set, model):
             y = y.unsqueeze(1)
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)
-            scores = model(x)
-            sums = torch.sum(scores, dim=(2,3), keepdim=True)
-            percentages = scores / sums
+            # scores = model(x)
+            # sums = torch.sum(scores, dim=(2,3), keepdim=True)
+            # percentages = scores / sums
+            percentages = model(x)
             # print ('percentages', percentages)
             percentages_of_correct_pixels = percentages * y
             # print ('percentages', percentages_of_correct_pixels)
@@ -118,11 +120,11 @@ def load_gaze_dataset(data_path, transform):
     # )
     # return train_loader
 
-def train(model, optimizer, epochs=1):
+def train(model, optimizer, mini=True, epochs=1):
     '''
     Train full Seccade model on our gathered data
+    mini: flag for guessing 4x4 sections of image rather than 16x16
     '''
-    CROP_SIZE = 64 #64x64 images
     NUM_TRAIN = 8000
     NUM_DEV = 9000
     DATA_TOTAL = 10000
@@ -132,20 +134,23 @@ def train(model, optimizer, epochs=1):
     # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
     transform = T.Compose([
                     gdata.ToTensor(),
-                    gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                    gdata.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010), mini),
                 ])
-    dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform)
+    dataset = gdata.GazeDataset(labels_path, data_path, train=True, transform=transform, mini=mini)
     train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN)))#, num_workers=2)
     dev_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_TRAIN, NUM_DEV)))#, num_workers=2)
     test_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=sampler.SubsetRandomSampler(range(NUM_DEV, DATA_TOTAL)))
     # for batch_idx, (data, target) in enumerate(load_dataset(data_path, transform)):
     print ('train')
+    W = 64
+    if mini:
+        W = 4
     for e in range(epochs):
         for t, sample_batched in enumerate(train_loader):
             print ('iter', t)
             x = sample_batched['image']
             batch_size = x.shape[0]
-            y = torch.zeros((batch_size, 64, 64))
+            y = torch.zeros((batch_size, W, W))
             coords = sample_batched['coords'].squeeze()
             # print ('coords', coords.shape, coords)
             idx = torch.arange(0, batch_size, out=torch.LongTensor())
@@ -181,9 +186,9 @@ def train(model, optimizer, epochs=1):
             if t % print_every == 0:
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
 #                 check_accuracy_part34(loader_train, 'train', model)
-                check_gaze_accuracy(dev_loader, 'val', model)
+                # check_gaze_accuracy(dev_loader, 'val', model, mini)
                 print()
-    check_gaze_accuracy(dev_loader, 'val', model)
+    check_gaze_accuracy(dev_loader, 'val', model, mini)
     
     
     

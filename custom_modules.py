@@ -81,16 +81,59 @@ class ThreeLayerConvTransposeNet(nn.Module):
         decoding = self.softmax(x)   # (N,1,64,64)
         return decoding
 
+class TwoLayerConvNet(nn.Module):
+    '''
+    take three crop encodings and shrink to single 4x4 area to guess eye location
+    '''
+    def __init__(self, in_channel=48, channel_1=8, channel_2=1):
+        super().__init__()
+        ########################################################################
+        # Set up the layers needed for a encoding each view                    #
+        ########################################################################
+
+        self.conv1 = nn.Conv2d(in_channel, channel_1, kernel_size=3, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(channel_1, channel_2, kernel_size=3, padding=1, bias=True)
+        self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.softmax = nn.Softmax(dim=2)
+        # initialize
+        nn.init.kaiming_normal_(self.conv1.weight)
+        nn.init.constant_(self.conv1.bias, 0)
+        nn.init.kaiming_normal_(self.conv2.weight)
+        nn.init.constant_(self.conv2.bias, 0)
+
+    def forward(self, x):
+        # X starts (N,C,8,8)      (C = 48 = 3*16)
+        N = x.shape[0]
+        x = F.relu(self.conv1(x))
+        x = self.max_pool(x)        # 4x4
+        x = self.conv2(x)
+        print ('decoding pre-softmax', x)
+        # decoding = self.softmax(x) # 4x4 percentages
+        decoding = self.softmax(x.view(*x.size()[:2],-1)).view_as(x)
+        assert (decoding.shape == (N, 1, 4,4))
+        print ('decoding', decoding)
+        print ('sum', torch.sum(decoding, dim=(2,3)))
+        print ('sums of pixels over all examples', torch.sum(decoding, dim=(0,1)))
+        # exit()
+        # exit()
+        return decoding
 
 class SeccadeModel(nn.Module):
-    def __init__(self, name=None):
+    def __init__(self, name=None, version=2):
         super().__init__()
         # all SingleCropEncoders take 64x64 images
         # number after sc means original size of image before resizing
         self.sc128 = SingleCropEncoder(name)
         self.sc256 = SingleCropEncoder(name)
         self.sc512 =  SingleCropEncoder(name)
-        self.convT_net = ThreeLayerConvTransposeNet()
+        self.decoder = None
+        if version == 1:
+            convT_net = ThreeLayerConvTransposeNet()
+            self.decoder = convT_net # 64x64 outpuy
+        else:
+            conv_net = TwoLayerConvNet()
+            self.decoder = conv_net # 4x4 output
+        
         
     def forward(self, x): # x is shape (batch, channel, H, W)
         # forward encodes images as (N,16,8,8) tensors
@@ -107,8 +150,8 @@ class SeccadeModel(nn.Module):
         encodings = torch.cat((x128, x256, x512), 1) #concatenate along channel axis
         
         # decode and get distribution over pixels of guess of seccade destination
-        decoded_score = self.convT_net.forward(encodings)
-        return decoded_score
+        decoded = self.decoder.forward(encodings)
+        return decoded
 
 class PretrainModel(nn.Module):
     '''pretrains on CIFAR10'''

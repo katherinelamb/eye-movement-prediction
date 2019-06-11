@@ -46,19 +46,19 @@ def main(argv):
 
     if not load_model:
         solver.train(model, optimizer)
-        N,C,H,W = 4, 3, 64, 64
-        in1 = torch.rand((N,C,H,W))
-        in2 = torch.rand((N,C,H,W))
-        in3 = torch.rand((N,C,H,W))
-        fake_truth = torch.ones((N,C,H,W)) * (1/(H*W))
-        print ('fake', fake_truth[0,0])
-        output = model(in1, in2, in3)
-        loss = torch.sum(fake_truth-output)
-        print(output.shape)
-        print ('output', output)
-        loss.backward()
-        optimizer.step()
-        print ('trained')
+        # N,C,H,W = 4, 3, 64, 64
+        # in1 = torch.rand((N,C,H,W))
+        # in2 = torch.rand((N,C,H,W))
+        # in3 = torch.rand((N,C,H,W))
+        # fake_truth = torch.ones((N,C,H,W)) * (1/(H*W))
+        # print ('fake', fake_truth[0,0])
+        # output = model(in1, in2, in3)
+        # loss = torch.sum(fake_truth-output)
+        # print(output.shape)
+        # print ('output', output)
+        # loss.backward()
+        # optimizer.step()
+        # print ('trained')
         solver.save_model(model, model_name)
 
     if load_model:
