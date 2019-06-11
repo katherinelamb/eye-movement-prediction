@@ -34,7 +34,8 @@ def main(argv):
             print ('attempting load')
             partial_load = True
     # learning_rate = 3e-3
-    learning_rate = 3e3
+    learning_rate = 3e-1
+    # learning_rate = 3e3
 
     model = None
     optimizer = None

@@ -112,8 +112,8 @@ class TwoLayerConvNet(nn.Module):
         decoding = self.softmax(x.view(*x.size()[:2],-1)).view_as(x)
         assert (decoding.shape == (N, 1, 4,4))
         print ('decoding', decoding)
-        print ('sum', torch.sum(decoding, dim=(2,3)))
-        print ('sums of pixels over all examples', torch.sum(decoding, dim=(0,1)))
+        # print ('sum', torch.sum(decoding, dim=(2,3)))
+        print ('sums of pixels over all examples\n', torch.sum(decoding, dim=(0,1)))
         # exit()
         # exit()
         return decoding

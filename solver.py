@@ -131,6 +131,7 @@ def train(model, optimizer, mini=True, epochs=1):
     BATCH_SIZE = 64
     data_path = './'
     labels_path = './labels.csv'
+    printed_y_once = False
     # hopefully this CIFAR norm and std generalizes to our data, if not, may switch to imagenet
     transform = T.Compose([
                     gdata.ToTensor(),
@@ -146,6 +147,8 @@ def train(model, optimizer, mini=True, epochs=1):
     if mini:
         W = 4
     for e in range(epochs):
+        if e > 0:
+            printed_y_once = True
         for t, sample_batched in enumerate(train_loader):
             print ('iter', t)
             x = sample_batched['image']
@@ -155,6 +158,8 @@ def train(model, optimizer, mini=True, epochs=1):
             # print ('coords', coords.shape, coords)
             idx = torch.arange(0, batch_size, out=torch.LongTensor())
             y[idx, coords[:,0], coords[:,1]] += 1
+            if not printed_y_once:
+                print ('sum of y', torch.sum(y, dim=0))
             y = y.unsqueeze(1)
             model.train()  # put model to training mode
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
