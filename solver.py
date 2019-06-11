@@ -55,6 +55,7 @@ def check_gaze_accuracy(loader, name_of_set, model, mini):
     else:
         print('Checking accuracy on test set')   
     total_percentage_points = 0
+    total_correct = 0
     num_samples = 0
     model.eval()  # set model to evaluation mode
     W = 4 if mini else 64
@@ -74,13 +75,20 @@ def check_gaze_accuracy(loader, name_of_set, model, mini):
             # sums = torch.sum(scores, dim=(2,3), keepdim=True)
             # percentages = scores / sums
             percentages = model(x)
+            # maxes = torch.max(percentages, 0)
+            # guesses = torch.where(percentages == maxes, 1, 0)
+            guesses = torch.argmax(percentages, dim=0)
             # print ('percentages', percentages)
             percentages_of_correct_pixels = percentages * y
             # print ('percentages', percentages_of_correct_pixels)
+            # total_correct += torch.sum(guesses * y)
+            total_correct += torch.sum(y[guesses])
             total_percentage_points += torch.sum(percentages_of_correct_pixels)
             num_samples += batch_size
-        acc = float(total_percentage_points) / num_samples
-        print('percent correct: (%.2f)' % (100 * acc))
+        perc_acc = float(total_percentage_points) / num_samples
+        guess_acc = float(total_correct) / num_samples
+        print('percentage points correct: (%.2f)' % (100 * perc_acc))
+        print('percent guesses correct: (%.2f)' % (100 * guess_acc))
 
 
 def check_accuracy(loader, name_of_set, model):
@@ -192,8 +200,11 @@ def train(model, optimizer, mini=True, epochs=1):
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
 #                 check_accuracy_part34(loader_train, 'train', model)
                 # check_gaze_accuracy(dev_loader, 'val', model, mini)
-                print()
+                # exit()
     check_gaze_accuracy(dev_loader, 'val', model, mini)
+    compute_train = input('compute train accuracy? (y/n): ')
+    if compute_train.lower()[0] == 'y':
+        check_gaze_accuracy(train_loader, 'train,', model, mini)
     
     
     
@@ -279,8 +290,8 @@ def pretrain(model, optimizer, epochs=1):
 
             if t % print_every == 0:
                 print('Iteration %d, loss = %.4f' % (t, loss.item()))
-#                 check_accuracy_part34(loader_train, 'train', model)
                 check_accuracy(loader_val, 'val', model)
+                # check_accuracy_part34(loader_train, 'train', model)
                 print()
 
 

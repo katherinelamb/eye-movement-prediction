@@ -24,17 +24,21 @@ def main(argv):
     SingleCropEncoder weights which have a head start from pretraining
     '''
     SAVE_PATH = './saved_models/'
+    train_new_model = False
     load_model = True
     partial_load = False
     model_name = argv[1]
     if len(argv) > 2:
         if argv[len(argv)-1] == '-t':
             load_model = False
+            train_new_model = True
         if argv[len(argv)-1] == '-tp':
             print ('attempting load')
             partial_load = True
-    # learning_rate = 3e-3
-    learning_rate = 3e-1
+        if argv[len(argv)-1] == '-lt':
+            load_and_train = True
+    learning_rate = 3e-3 # best for adam so far
+    # learning_rate = 3e-1 # best for SGD so far
     # learning_rate = 3e3
 
     model = None
@@ -43,10 +47,11 @@ def main(argv):
     # Instantiate model and a corresponding optimizer #
     ################################################################################
     model = cm.SeccadeModel()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    if not load_model:
-        solver.train(model, optimizer)
+    if train_new_model:
+        solver.train(model, optimizer, epochs=1)
         # N,C,H,W = 4, 3, 64, 64
         # in1 = torch.rand((N,C,H,W))
         # in2 = torch.rand((N,C,H,W))
@@ -60,7 +65,6 @@ def main(argv):
         # loss.backward()
         # optimizer.step()
         # print ('trained')
-        solver.save_model(model, model_name)
 
     if load_model:
         print ('loading')
@@ -76,7 +80,7 @@ def main(argv):
             if os.path.exists(os.path.dirname(dirname)):
                 try:
                     submodel.load_state_dict(torch.load(dirname))
-                    submodel.eval()
+                    submodel.eval() # freeze pretrained weights
                 except OSError as exc:
                     print ('skipping idx:', idx)
                     continue
@@ -87,7 +91,21 @@ def main(argv):
         # in3 = torch.rand((N,C,H,W))
         # output = model(in1, in2, in3)
         # print('output', output.shape)
+    if load_and_train:
+        input()
+        for idx, submodel in enumerate(model.children()):
+            dirname = SAVE_PATH+model_name+str(idx)
+            print (idx, submodel)
+            print (dirname)
+            if os.path.exists(os.path.dirname(dirname)):
+                try:
+                    submodel.load_state_dict(torch.load(dirname))
+                except OSError as exc:
+                    print ('skipping idx:', idx)
+                    continue
+        solver.train(model, optimizer)
 
+    solver.save_model(model, model_name + '_post_train')
 
 
 
