@@ -94,10 +94,10 @@ def check_gaze_accuracy(loader, name_of_set, vgg_model, model, mini):
         print('percentage points correct: (%.2f)' % (100 * perc_acc))
         print('percent guesses correct: (%.2f)' % (100 * guess_acc))
 
-def crop_through_vgg(vgg_model, crop, crop_num):
+def crop_through_vgg(vgg_model, crop, encodings, crop_num):
     x = vgg_model(crop)
     print('done with crop', crop_num)
-    return x
+    encodings[crop_num] = x
 
 
 def train(model, optimizer, mini=True, epochs=1):
@@ -150,13 +150,31 @@ def train(model, optimizer, mini=True, epochs=1):
             x128 = x[:,:,:, :W//3]
             x256 = x[:,:,:, W//3 : 2*W//3]
             x512 = x[:,:,:, 2*W//3 : W]
+            crops = (x128, x256, x512)
+            encodings = [None, None, None]
+            threads = list()
+            for index in range(3):
+                logging.info("Main    : create and start thread %d.", index)
+                x = threading.Thread(target=crop_through_vgg, args=(vgg_model, crops[index], encodings, index,))
+                threads.append(x)
+                x.start()
+                
+
+            for index, thread in enumerate(threads):
+                logging.info("Main    : before joining thread %d.", index)
+                thread.join()
+                logging.info("Main    : thread %d done", index)
+            
             # encodings
-            print('making first encoding')
-            e128 = vgg_model(x128)
-            print('making second encoding')
-            e256 = vgg_model(x256)
-            print('making final encoding')
-            e512 = vgg_model(x512)
+            # print('making first encoding')
+            # e128 = vgg_model(x128)
+            # print('making second encoding')
+            # e256 = vgg_model(x256)
+            # print('making final encoding')
+            # e512 = vgg_model(x512)
+            e128 = encodings[0]
+            e256 = encodings[1]
+            e512 = encodings[2]
             model.train()  # put model to training mode
             percentages = model(e128, e256, e512)
             print ('percentages', percentages.shape)
